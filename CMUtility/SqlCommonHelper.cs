@@ -99,7 +99,6 @@ namespace CMUtility
             return result;
         }
 
-
         public int ExecuteSP(MySqlParam model)
         {
             int result = 0;
@@ -139,7 +138,7 @@ namespace CMUtility
 
     public class MySqlParam
     {
-
+        public object obj { get; set; }
         public string sql { get; set; }
         public List<SqlParameter> SqlParameter { get; set; }
         public string StoredProcedure { get; set; }
@@ -151,7 +150,20 @@ namespace CMUtility
 
         public MySqlParam(object obj)
         {
-            SqlParameter = SqlParameterExtensions.ToSqlParamsList(obj);            
+            this.obj = obj;
+            SqlParameter = SqlParameterExtensions.ToSqlParamsList(obj);
+        }
+
+        public MySqlParam(object obj, CRUDType type)
+        {
+            this.obj = obj;
+            SqlParameter = SqlParameterExtensions.ToSqlParamsList(obj);
+            ToSql(type);
+        }
+
+        public void ToSql(CRUDType type)
+        {
+            sql = SqlParameterExtensions.ToSql(obj, type);
         }
     }    
 }

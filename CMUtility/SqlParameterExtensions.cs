@@ -6,6 +6,7 @@ using System.Data;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using System.Runtime.CompilerServices;
 
 namespace CMUtility
 {
@@ -36,16 +37,25 @@ namespace CMUtility
         public object Value { get; set; }
     }
 
-    public static class SqlParameterExtensions
+    public class SqlInfo
     {
-        private class QueryParamInfo
+        public SqlInfo()
         {
-            public string Name { get; set; }
-            public object Value { get; set; }
+            Columns = new List<string>();
+            Parameters = new List<string>();
         }
 
+        public string TableName { get; set; }
 
+        public List<string> Columns { get; set; }
 
+        public List<string> Parameters { get; set; }
+
+        public List<string> PrimaryKeys {  get; set; }
+    }
+
+    public static class SqlParameterExtensions
+    {
         public static object[] ToSqlParamsArray(this object obj, SqlParameter[] additionalParams = null)
         {
             var result = ToSqlParamsList(obj, additionalParams);
@@ -85,7 +95,60 @@ namespace CMUtility
                 result.AddRange(additionalParams);
 
             return result;
+        }
 
+        public static string ToSql(this object obj, CRUDType type)
+        {
+            var props = (
+               from p in obj.GetType().GetProperties()
+               let nameAttr = p.GetCustomAttributes(typeof(QueryParamNameAttribute), true)
+               let ignoreAttr = p.GetCustomAttributes(typeof(QueryParamIgnoreAttribute), true)
+               select new { Property = p, Names = nameAttr, Ignores = ignoreAttr }).ToList();
+
+            var sinfo = new SqlInfo();
+
+            sinfo.TableName = obj.GetType().Name;
+
+            props.ForEach(p =>
+            {
+                if (p.Ignores != null && p.Ignores.Length > 0)
+                    return;
+                var name = p.Names.FirstOrDefault() as QueryParamNameAttribute;
+
+                if (name != null && !String.IsNullOrWhiteSpace(name.Name))
+                {
+                    sinfo.Parameters.Add($"@{name.Name}");
+                    sinfo.Columns.Add(name.Name.Replace("@", ""));
+                }                    
+                else
+                {
+                    sinfo.Parameters.Add($"@{p.Property.Name}");
+                    sinfo.Columns.Add(p.Property.Name.Replace("@", ""));
+                }               
+            });
+
+            return To(sinfo, type);
+        }
+
+        public static string To(SqlInfo sinfo, CRUDType type)
+        {
+            string result = string.Empty;
+            switch (type)
+            {
+                case CRUDType.C:
+                    result += $"INSERT INTO {sinfo.TableName}({string.Join(", ", sinfo.Columns)}) VALUES({string.Join(", ", sinfo.Parameters)}); ";
+                    break;
+                case CRUDType.R:
+                    break;
+                case CRUDType.U:
+                    break;
+                case CRUDType.D:
+                    break;
+                default:
+                    break;
+            }
+
+            return result;
         }
     }
 
@@ -306,7 +369,7 @@ namespace CMUtility
             }
 
             return (DbTypeMapEntry)retObj;
-        }
+        }     
 
         #endregion
     }
