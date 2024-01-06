@@ -1,0 +1,143 @@
+﻿using System;
+using System.Collections.Generic;
+using System.Configuration;
+using System.Data;
+using System.Data.SqlClient;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace CMUtility
+{
+    public class SqlCommonHelper
+    {
+        static String ConnectionString = ConfigurationManager.AppSettings["SiteSqlServer"];
+        SqlHelp SqlHelper = new SqlHelp();
+
+        public SqlCommonHelper() { 
+        
+        }
+        public List<T> QueryToList<T>(string sql, List<SqlParameter> parammeter) where T : new()
+        {
+            DataTable dt = SqlHelper.ExecuteDataTable(ConnectionString, sql, 60, parammeter.ToArray());
+            return dt.ToList<T>();
+        }
+        public DataTable Query(string sql, List<SqlParameter> parammeter)
+        {
+            DataTable dt = SqlHelper.ExecuteDataTable(ConnectionString, sql, 60, parammeter.ToArray());
+            return dt;
+        }
+        public int InsertUpdateQuery(MySqlParam model) {
+            int result = 0;
+            SqlConnection conn = new SqlConnection(ConnectionString);
+            conn.Open();
+            SqlCommand command = conn.CreateCommand();     
+            SqlTransaction transaction;
+            transaction = conn.BeginTransaction("Transaction");
+            command.Connection = conn;
+            command.Transaction = transaction;
+            try
+            {
+                command.CommandText = model.sql;
+                command.Parameters.Clear();
+                foreach (var P in model.SqlParameter) {
+                    command.Parameters.Add(P);
+                }
+                result = command.ExecuteNonQuery();
+                transaction.Commit();
+            }
+            catch (Exception ex)
+            {
+                transaction.Rollback();
+                MyLog.WriteLog(ex.ToString());
+
+                var LN = new LineNotify();
+                LN.PostErrorMessage(ex.Message, "嚴重");
+
+                return result;
+            }
+            return result;
+        }
+        public int InsertUpdateQuery(List<MySqlParam> models)
+        {
+            int result = 0;
+            SqlConnection conn = new SqlConnection(ConnectionString);
+            conn.Open();
+            SqlCommand command = conn.CreateCommand();
+            SqlTransaction transaction;
+            transaction = conn.BeginTransaction("Transaction");
+            command.Connection = conn;
+            command.Transaction = transaction;
+            try
+            {
+                foreach (var model in models) {
+                    command.CommandText = model.sql;
+                    command.Parameters.Clear();
+                    foreach (var P in model.SqlParameter)
+                    {
+                        command.Parameters.Add(P);
+                    }
+                    result += command.ExecuteNonQuery();
+                }
+                
+                transaction.Commit();
+            }
+            catch (Exception ex)
+            {
+                transaction.Rollback();
+                result = 0;
+                MyLog.WriteLog(ex.ToString());
+
+                var LN = new LineNotify();
+                LN.PostErrorMessage(ex.Message, "嚴重");
+
+                return result;
+            }
+            return result;
+        }
+
+
+        public int ExecuteSP(MySqlParam model)
+        {
+            int result = 0;
+            SqlConnection conn = new SqlConnection(ConnectionString);
+            conn.Open();
+            SqlCommand command = conn.CreateCommand();
+            command.CommandType = CommandType.StoredProcedure;
+            SqlTransaction transaction;
+            transaction = conn.BeginTransaction("Transaction");
+            command.Connection = conn;
+            command.Transaction = transaction;
+            try
+            {
+                command.CommandText = model.StoredProcedure;
+                command.Parameters.Clear();
+                foreach (var P in model.SqlParameter)
+                {
+                    command.Parameters.Add(P);
+                }
+                result = command.ExecuteNonQuery();
+                transaction.Commit();
+            }
+            catch (Exception ex)
+            {
+                transaction.Rollback();
+                MyLog.WriteLog(ex.ToString());
+
+                var LN = new LineNotify();
+                LN.PostErrorMessage(ex.Message, "嚴重");
+
+                return result;
+            }
+            return result;
+        }
+
+    }
+   
+    public class MySqlParam {
+        public MySqlParam() { SqlParameter = new List<SqlParameter>(); }
+        public string sql { get; set; }
+        public List<SqlParameter> SqlParameter { get; set; }
+        public string StoredProcedure { get; set; }
+    }
+}
