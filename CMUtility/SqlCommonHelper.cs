@@ -14,7 +14,7 @@ namespace CMUtility
 {
     public class SqlCommonHelper
     {
-        static String ConnectionString = ConfigurationManager.AppSettings["SiteSqlServer"];
+        static String ConnectionString = ConfigurationManager.ConnectionStrings["SiteSqlServer"].ToString();
         SqlHelp SqlHelper = new SqlHelp();
 
         public SqlCommonHelper() { 
