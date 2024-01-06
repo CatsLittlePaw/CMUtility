@@ -13,8 +13,7 @@ namespace CMUtility
         public void PostErrorMessage(string ErrorMsg, string type) 
         {
             ErrorMsg = (ErrorMsg.Length > 900) ? ErrorMsg.Substring(0, 900) : ErrorMsg;
-            var ProjectName = "幫我購Service";
-            var Message = $"[{ProjectName}] {DateTime.UtcNow.AddHours(8).ToLongDateString()} {DateTime.UtcNow.AddHours(8).ToLongTimeString()} 發生{type}錯誤\n" +
+            var Message = $"\n{DateTime.UtcNow.AddHours(8).ToLongDateString()} {DateTime.UtcNow.AddHours(8).ToLongTimeString()} 發生{type}錯誤\n" +
                 $"{ErrorMsg}";
 
             PostLineNotify(Message);
