@@ -30,6 +30,11 @@ namespace CMUtility
             DataTable dt = SqlHelper.ExecuteDataTable(ConnectionString, sql, 60, parammeter.ToArray());
             return dt;
         }
+        public DataTable Query(MySqlParam msp)
+        {
+            DataTable dt = SqlHelper.ExecuteDataTable(ConnectionString, msp.sql, 60, msp.SqlParameter.ToArray());
+            return dt;
+        }
         public int InsertUpdateQuery(MySqlParam model) {
             int result = 0;
             SqlConnection conn = new SqlConnection(ConnectionString);

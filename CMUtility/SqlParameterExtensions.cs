@@ -31,6 +31,18 @@ namespace CMUtility
     {
     }
 
+    /// <summary>
+    /// Primary Key property
+    /// </summary>
+    [System.AttributeUsage(AttributeTargets.Property)]
+    public class PrimaryKeyAttribute : Attribute
+    {       
+        public PrimaryKeyAttribute()
+        {
+            
+        }
+    }
+
     public class QueryParamInfo
     {
         public string Name { get; set; }
@@ -43,6 +55,7 @@ namespace CMUtility
         {
             Columns = new List<string>();
             Parameters = new List<string>();
+            PrimaryKeys = new List<string>();
         }
 
         public string TableName { get; set; }
@@ -103,27 +116,33 @@ namespace CMUtility
                from p in obj.GetType().GetProperties()
                let nameAttr = p.GetCustomAttributes(typeof(QueryParamNameAttribute), true)
                let ignoreAttr = p.GetCustomAttributes(typeof(QueryParamIgnoreAttribute), true)
-               select new { Property = p, Names = nameAttr, Ignores = ignoreAttr }).ToList();
+               let primaryKeyAttr = p.GetCustomAttributes(typeof(PrimaryKeyAttribute), true)
+               select new { Property = p, Names = nameAttr, Ignores = ignoreAttr, PrimaryKeys = primaryKeyAttr }).ToList();
 
             var sinfo = new SqlInfo();
 
             sinfo.TableName = obj.GetType().Name;
 
             props.ForEach(p =>
-            {
+            {     
                 if (p.Ignores != null && p.Ignores.Length > 0)
                     return;
                 var name = p.Names.FirstOrDefault() as QueryParamNameAttribute;
+                var pk = p.PrimaryKeys.FirstOrDefault() as PrimaryKeyAttribute;
 
                 if (name != null && !String.IsNullOrWhiteSpace(name.Name))
                 {
                     sinfo.Parameters.Add($"@{name.Name}");
                     sinfo.Columns.Add(name.Name.Replace("@", ""));
+                    if(pk != null)
+                        sinfo.PrimaryKeys.Add(name.Name.Replace("@", ""));
                 }                    
                 else
                 {
                     sinfo.Parameters.Add($"@{p.Property.Name}");
                     sinfo.Columns.Add(p.Property.Name.Replace("@", ""));
+                    if (pk != null)
+                        sinfo.PrimaryKeys.Add(p.Property.Name.Replace("@", ""));
                 }               
             });
 
@@ -133,16 +152,31 @@ namespace CMUtility
         public static string To(SqlInfo sinfo, CRUDType type)
         {
             string result = string.Empty;
+            string whereCond = "1=1 ";
             switch (type)
             {
                 case CRUDType.C:
                     result += $"INSERT INTO {sinfo.TableName}({string.Join(", ", sinfo.Columns)}) VALUES({string.Join(", ", sinfo.Parameters)}); ";
                     break;
                 case CRUDType.R:
+                    if(sinfo.PrimaryKeys.Count > 0)
+                        whereCond += $"AND {string.Join("AND ", (from item in sinfo.PrimaryKeys select $"{item} = @{item} ").ToList())}";                 
+                    result += $"SELECT {string.Join(", ", sinfo.Columns)} FROM {sinfo.TableName} WHERE {whereCond}; ";
                     break;
                 case CRUDType.U:
+                    sinfo.Columns.AddRange(sinfo.PrimaryKeys);
+                    result += $"UPDATE {sinfo.TableName} SET {string.Join(", ", (from item in sinfo.Columns.Distinct() select $"{item} = @{item} ").ToList())} WHERE ";
+                    if (sinfo.PrimaryKeys.Count > 0)
+                        whereCond += $"AND {string.Join("AND ", (from item in sinfo.PrimaryKeys select $"{item} = @{item} ").ToList())}";
+                    result += $"{whereCond}; ";
                     break;
                 case CRUDType.D:
+                    // 避免誤將全部刪除
+                    if(sinfo.PrimaryKeys.Count > 0)
+                    {
+                        whereCond += $"AND {string.Join("AND ", (from item in sinfo.PrimaryKeys select $"{item} = @{item} ").ToList())}";
+                        result += $"DELETE FROM {sinfo.TableName} WHERE {whereCond}; ";
+                    }                   
                     break;
                 default:
                     break;
