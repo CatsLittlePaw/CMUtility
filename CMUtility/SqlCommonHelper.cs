@@ -1,9 +1,12 @@
 ﻿using System;
+using System.Collections;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.Configuration;
 using System.Data;
 using System.Data.SqlClient;
 using System.Linq;
+using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -133,11 +136,22 @@ namespace CMUtility
         }
 
     }
-   
-    public class MySqlParam {
-        public MySqlParam() { SqlParameter = new List<SqlParameter>(); }
+
+    public class MySqlParam
+    {
+
         public string sql { get; set; }
         public List<SqlParameter> SqlParameter { get; set; }
         public string StoredProcedure { get; set; }
-    }
+
+        public MySqlParam()
+        {
+            SqlParameter = new List<SqlParameter>();
+        }
+
+        public MySqlParam(object obj)
+        {
+            SqlParameter = SqlParameterExtensions.ToSqlParamsList(obj);            
+        }
+    }    
 }
