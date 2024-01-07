@@ -9,14 +9,14 @@ namespace CMUtility
 {
     public class MyLog
     {
-        public static void WriteLog(string message,string message2 = "")
+        public static void WriteLog(string message, string message2 = "")
         {
-            string DIRNAME = AppDomain.CurrentDomain.BaseDirectory + @"\Log\";
+            string DIRNAME = $"{AppDomain.CurrentDomain.BaseDirectory}\\Log\\";
             string FILENAME = DIRNAME + DateTime.UtcNow.AddHours(8).ToString("yyyyMMdd") + ".txt";
-
             if (!Directory.Exists(DIRNAME))
-                Directory.CreateDirectory(DIRNAME); 
-
+            {
+                Directory.CreateDirectory(DIRNAME);
+            }
             if (!File.Exists(FILENAME))
             {
                 // The File.Create method creates the file and opens a FileStream on the file. You neeed to close it.
