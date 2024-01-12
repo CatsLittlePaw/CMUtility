@@ -10,28 +10,41 @@ namespace CMUtility
 {
     public class LineNotify
     {
-        public void PostErrorMessage(string ErrorMsg, string type) 
+        public static void PostLineNotify(string msg, string type = "") 
         {
-            ErrorMsg = (ErrorMsg.Length > 900) ? ErrorMsg.Substring(0, 900) : ErrorMsg;
-            var Message = $"\n{DateTime.UtcNow.AddHours(8).ToLongDateString()} {DateTime.UtcNow.AddHours(8).ToLongTimeString()} 發生{type}錯誤\n" +
-                $"{ErrorMsg}";
-
-            PostLineNotify(Message);
-        }
-        private async void PostLineNotify(string message) 
-        {
-            var Keys = ConfigurationManager.AppSettings["LINE_NOTIFY"].Split('|');
-            var client = new RestClient("https://notify-api.line.me/api/notify");
-
-            foreach (var key in Keys)
+            try
             {
+                msg = (msg.Length > 900) ? msg.Substring(0, 900) : msg;
+                var time = string.Concat(DateTime.UtcNow.AddHours(8).ToLongDateString(), DateTime.UtcNow.AddHours(8).ToLongTimeString());
+                var message = $"\n{msg}";
+
+                PostMsg(message);
+            }
+            catch(Exception ex)
+            {
+
+            }
+        }
+
+        private static void PostMsg(string message) 
+        {
+            var keys = ConfigurationManager.AppSettings["LINE_NOTIFY"].Split("|");
+
+            foreach (var key in keys)
+            {
+                var options = new RestClientOptions("https://notify-api.line.me/api/notify")
+                {
+                    MaxTimeout = -1
+                };
+
+                var client = new RestClient(options);
                 var request = new RestRequest();
                 request.AddHeader("Authorization", $"Bearer {key}");
                 request.AddHeader("Content-Type", "application/x-www-form-urlencoded");
                 request.AddParameter("message", message);
 
-                RestResponse response = await client.PostAsync(request);
-            }
+                client.Post(request);
+            }           
         }
     }
 }

@@ -14,11 +14,11 @@ namespace CMUtility
 {
     public class SqlCommonHelper
     {
-        static String ConnectionString = ConfigurationManager.ConnectionStrings["SiteSqlServer"].ToString();
+        static String ConnectionString = "Data Source=localhost\\SQLEXPRESS;Initial Catalog=Project1;User ID=Hazy;Password=silent1998";// ConfigurationManager.ConnectionStrings["SiteSqlServer"].ToString();
         SqlHelp SqlHelper = new SqlHelp();
 
-        public SqlCommonHelper() { 
-        
+        public SqlCommonHelper() {
+            
         }
         public List<T> QueryToList<T>(string sql, List<SqlParameter> parammeter) where T : new()
         {
@@ -35,7 +35,7 @@ namespace CMUtility
             DataTable dt = SqlHelper.ExecuteDataTable(ConnectionString, msp.sql, 60, msp.SqlParameter.ToArray());
             return dt;
         }
-        public int InsertUpdateQuery(MySqlParam model) {
+        public int InsertUpdateQuery_WT(MySqlParam model) {
             int result = 0;
             SqlConnection conn = new SqlConnection(ConnectionString);
             conn.Open();
@@ -58,15 +58,41 @@ namespace CMUtility
             {
                 transaction.Rollback();
                 MyLog.WriteLog(ex.ToString());
-
-                var LN = new LineNotify();
-                LN.PostErrorMessage(ex.Message, "嚴重");
+                LineNotify.PostLineNotify(ex.Message);
 
                 return result;
             }
             return result;
         }
-        public int InsertUpdateQuery(List<MySqlParam> models)
+
+        public int InsertUpdateQuery(MySqlParam model)
+        {
+            int result = 0;
+            SqlConnection conn = new SqlConnection(ConnectionString);
+            conn.Open();
+            SqlCommand command = conn.CreateCommand();
+            command.Connection = conn;          
+            try
+            {
+                command.CommandText = model.sql;
+                command.Parameters.Clear();
+                foreach (var P in model.SqlParameter)
+                {
+                    command.Parameters.Add(P);
+                }
+                result = command.ExecuteNonQuery();              
+            }
+            catch (Exception ex)
+            {
+                MyLog.WriteLog(ex.ToString());
+                LineNotify.PostLineNotify(ex.Message);
+
+                return result;
+            }
+            return result;
+        }
+
+        public int InsertUpdateQuery_WT(List<MySqlParam> models)
         {
             int result = 0;
             SqlConnection conn = new SqlConnection(ConnectionString);
@@ -95,9 +121,38 @@ namespace CMUtility
                 transaction.Rollback();
                 result = 0;
                 MyLog.WriteLog(ex.ToString());
+                LineNotify.PostLineNotify(ex.Message);
 
-                var LN = new LineNotify();
-                LN.PostErrorMessage(ex.Message, "嚴重");
+                return result;
+            }
+            return result;
+        }
+
+        public int InsertUpdateQuery(List<MySqlParam> models)
+        {
+            int result = 0;
+            SqlConnection conn = new SqlConnection(ConnectionString);
+            conn.Open();
+            SqlCommand command = conn.CreateCommand();         
+            command.Connection = conn;
+            try
+            {
+                foreach (var model in models)
+                {
+                    command.CommandText = model.sql;
+                    command.Parameters.Clear();
+                    foreach (var P in model.SqlParameter)
+                    {
+                        command.Parameters.Add(P);
+                    }
+                    result += command.ExecuteNonQuery();
+                }
+            }
+            catch (Exception ex)
+            {
+                result = 0;
+                MyLog.WriteLog(ex.ToString());
+                LineNotify.PostLineNotify(ex.Message);
 
                 return result;
             }
@@ -130,9 +185,7 @@ namespace CMUtility
             {
                 transaction.Rollback();
                 MyLog.WriteLog(ex.ToString());
-
-                var LN = new LineNotify();
-                LN.PostErrorMessage(ex.Message, "嚴重");
+                LineNotify.PostLineNotify(ex.Message);
 
                 return result;
             }
