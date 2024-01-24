@@ -165,7 +165,7 @@ namespace CMUtility
                     break;
                 case CRUDType.U:
                     sinfo.Columns.AddRange(sinfo.PrimaryKeys);
-                    result += $"UPDATE {sinfo.TableName} SET {string.Join(", ", (from item in sinfo.Columns.Distinct() select $"{item} = @{item} ").ToList())}, CRT_DATETIME=GETDATE(), UPD_DATETIME=GETDATE() WHERE ";
+                    result += $"UPDATE {sinfo.TableName} SET {string.Join(", ", (from item in sinfo.Columns.Distinct() select $"{item} = @{item} ").ToList())}, UPD_DATETIME=GETDATE() WHERE ";
                     if (sinfo.PrimaryKeys.Count > 0)
                         whereCond += $"AND {string.Join("AND ", (from item in sinfo.PrimaryKeys select $"{item} = @{item} ").ToList())}";
                     result += $"{whereCond}; ";
